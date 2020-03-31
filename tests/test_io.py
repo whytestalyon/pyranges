@@ -40,4 +40,10 @@ def test_read_gff3():
 
 def test_read_bed():
 
-    pr.read_bed("pyranges/example_data/chipseq.bed")
+    gr = pr.read_bed("tests/test_data/custom_header.bed")
+
+    assert gr.df.shape == (9, 6)
+
+    gr = pr.read_bed("tests/test_data/multiline_header.bed")
+
+    assert gr.df.shape == (9, 9)

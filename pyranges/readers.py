@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+import gzip
+
 import sys
 
 import pandas as pd
@@ -72,18 +74,19 @@ def read_bed(f, as_df=False, nrows=None):
     columns = "Chromosome Start End Name Score Strand ThickStart ThickEnd ItemRGB BlockCount BlockSizes BlockStarts".split(
     )
 
-    if f.endswith(".gz"):
-        import gzip
-        first_start = gzip.open(f).readline().split()[1]
-    else:
-        first_start = open(f).readline().split()[1]
+    header_line_count = 0
+    bed_col_count = 0
 
-    header = None
+    with (gzip.open(f) if f.endswith(".gz") else open(f)) as bedf:
+        line = bedf.readline()
+        while line:
+            cols = line.split("\t")
+            if len(cols) > 2 and cols[1].isdigit() and cols[2].isdigit():
+                bed_col_count = len(cols)
+                break
 
-    try:
-        int(first_start)
-    except ValueError:
-        header = 0
+            header_line_count += 1
+            line = bedf.readline()
 
     df = pd.read_csv(
         f,
@@ -92,10 +95,9 @@ def read_bed(f, as_df=False, nrows=None):
             "Strand": "category"
         },
         nrows=nrows,
-        header=header,
+        skiprows=header_line_count,
+        names=columns[:bed_col_count],
         sep="\t")
-
-    df.columns = columns[:df.shape[1]]
 
     if not as_df:
         return PyRanges(df)
